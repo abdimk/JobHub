@@ -1,0 +1,38 @@
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from . import schemas
+from . import jobs
+
+app=FastAPI()
+origions=["*"] 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origions,#domains which 
+    allow_credentials=True,
+    allow_methods=["*"],# allow specific mehods(get,update)
+    allow_headers=["*"],#allwo which headers
+)
+
+
+
+@app.get("/") #decorator
+async def root():
+    return {"message": f"Hello "}
+
+@app.post("/linkdin/get")
+def get_LIposts(title:schemas.userInput):
+    linkdin=jobs.searchJobsLinkdin(title.skill,title.location,title.pagenumber)
+
+    return linkdin
+
+@app.post("/ziprecuter/get")
+def get_zip(title:schemas.userInput):
+    ziprecuter = jobs.searchJobsZipRecruiter(title.skill,title.location, title.pagenumber)
+    return ziprecuter
+
+@app.post('/indeed/get')
+def get_indeed(title:schemas.indeedInput):
+
+    indeed = jobs.searchOnIndeed(title.search_term, title.google_search_term)
+    return indeed
