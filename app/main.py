@@ -15,6 +15,8 @@ app.add_middleware(
 )
 
 
+jobscr = jobs.JobScraper()
+
 
 @app.get("/") #decorator
 async def root():
@@ -22,17 +24,17 @@ async def root():
 
 @app.post("/linkdin/get")
 def get_LIposts(title:schemas.userInput):
-    linkdin=jobs.searchJobsLinkdin(title.skill,title.location,title.pagenumber)
+    linkdin=jobscr.search_linkedin(title.skill,title.location,title.pagenumber)
 
     return linkdin
 
 @app.post("/ziprecuter/get")
 def get_zip(title:schemas.userInput):
-    ziprecuter = jobs.searchJobsZipRecruiter(title.skill,title.location, title.pagenumber)
+    ziprecuter = jobscr.search_ziprecruiter(title.skill,title.location, title.pagenumber)
     return ziprecuter
 
 @app.post('/indeed/get')
 def get_indeed(title:schemas.indeedInput):
 
-    indeed = jobs.searchOnIndeed(title.search_term, title.google_search_term)
+    indeed = jobscr.search_with_jobspy(title.search_term, title.google_search_term)
     return indeed
