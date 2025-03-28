@@ -10,7 +10,7 @@ from urllib.request import Request, urlopen
 import urllib.request
 import numpy as np
 from jobspy import scrape_jobs
-from typing import List, Dict, Optional, Union, Tuple
+from typing import List, Dict, Optional, Any
 import logging
 
 # Configure logging
@@ -116,63 +116,7 @@ class JobScraper:
             logger.error(f"Error checking next page: {e}")
             return False
     
-    def search_ziprecruiter(self, skill: str, place: str, page: int = 1, max_pages: int = 5) -> List[List[str]]:
-        """
-        Search for jobs on ZipRecruiter.
-        
-        Args:
-            skill: The job skill to search for
-            place: The location to search in
-            page: The starting page number
-            max_pages: Maximum number of pages to scrape
-            
-        Returns:
-            A list of job listings
-        """
-        ziprecruiter_list = []
-        current_page = page
-        
-        try:
-            while current_page < (page + max_pages):
-                url = f"https://www.ziprecruiter.ie/jobs/search?q={skill}&l={place}&page={current_page}"
-                logger.info(f"Scraping ZipRecruiter page {current_page}: {url}")
-                
-                self.driver.get(url)
-                soup = BeautifulSoup(self.driver.page_source, 'html.parser')
-                
-                jobs = soup.find_all('li', class_='job-listing')
-                if not jobs:
-                    logger.info("No more jobs found on ZipRecruiter")
-                    break
-                    
-                for job in jobs:
-                    # Job Title
-                    title_elem = job.find('a', class_='jobList-title')
-                    title = title_elem.text.strip() if title_elem else 'No Title'
-                    
-                    # Company
-                    company_elem = job.find('li', string=lambda t: t and 'fas fa-building' in str(t))
-                    company = company_elem.text.strip() if company_elem else 'No Company'
-                    
-                    # Location
-                    location_elem = job.find('li', string=lambda t: t and 'fas fa-map-marker-alt' in str(t))
-                    location = location_elem.text.strip() if location_elem else 'No Location'
-                    
-                    # Post Date
-                    date_elem = job.find('div', class_='jobList-date')
-                    post_date = date_elem.text.strip() if date_elem else 'No Date'
-                    
-                    ziprecruiter_list.append([company, title, location, post_date])
-                
-                current_page += 1
-                time.sleep(random.uniform(1.5, 3.0))  # Random delay between requests
-                
-            logger.info(f"Found {len(ziprecruiter_list)} jobs on ZipRecruiter")
-            return ziprecruiter_list
-            
-        except Exception as e:
-            logger.error(f"Error searching ZipRecruiter: {e}")
-            return ziprecruiter_list
+    
     
     def search_linkedin(self, skill: str, place: str, page: int = 0, max_pages: int = 5) -> List[List[str]]:
         """
@@ -192,7 +136,7 @@ class JobScraper:
         
         try:
             while current_page < (page + max_pages):
-                url = f"https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords={skill}&location={place}&start={current_page}"
+                url = f"https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords={skill}&location={place}&start={current_page}&f_TPR=r86400&&sortBy=DD"
                 logger.info(f"Scraping LinkedIn page {current_page}: {url}")
                 
                 self.driver.get(url)
@@ -263,28 +207,17 @@ class JobScraper:
             logger.error(f"Error searching LinkedIn: {e}")
             return linkedin_list
     
-    def search_with_jobspy(self, site_name: List[str], search_term: str, 
-                          google_search_term: str, location: str = "newyork",
-                          results_wanted: int = 30, hours_old: int = 72,
-                          country: str = "usa") -> List[List[str]]:
+    def search_with_jobspy(self, site_name: str, search_term: str, 
+                      google_search_term: str, location: str = "newyork",
+                      results_wanted: int = 30, hours_old: int = 72,
+                      country: str = "usa") -> List[List[str]]:
         """
-        Search for jobs using the jobspy library.
-        
-        Args:
-            site_name: List of sites to search (e.g., ["indeed", "google"])
-            search_term: The job search term
-            google_search_term: The Google search term
-            location: Location to search in
-            results_wanted: Number of results to return
-            hours_old: Maximum age of job postings in hours
-            country: Country to search in
-            
-        Returns:
-            A list of job listings
+        Search for jobs using jobspy with robust salary handling
         """
         try:
-            logger.info(f"Searching {', '.join(site_name)} using jobspy")
+            logger.info(f"Searching {site_name} using jobspy")
             
+            # Scrape jobs
             jobs = scrape_jobs(
                 site_name=site_name,
                 search_term=search_term,
@@ -295,37 +228,112 @@ class JobScraper:
                 country_indeed=country,
             )
             
-            total_jobs = len(jobs)
-            logger.info(f"Found {total_jobs} jobs using jobspy")
+            logger.info(f"Found {len(jobs)} jobs using jobspy")
+
+            # Define expected columns and set defaults if missing
+            columns_needed = ["company", "title", "job_url", "date_posted"]
+            salary_columns = ["min_amount", "max_amount", "currency"]
             
-            # Save to CSV (optional)
-            output_file = f"{site_name[0]}_jobs.csv"
-            jobs.to_csv(output_file, quoting=csv.QUOTE_NONNUMERIC, escapechar="\\", index=False)
-            
-            # Extract needed columns
-            columns_needed = ["company", "title", "job_url", "salary_source", "date_posted"]
-            
-            # Clean the dataframe
-            df_cleaned = jobs[columns_needed].applymap(
-                lambda x: None if isinstance(x, float) and np.isnan(x) else x
+            # Add salary columns with default values if missing
+            for col in salary_columns:
+                if col not in jobs.columns:
+                    jobs[col] = None
+
+            # Clean and format numerical salary values
+            if "min_amount" in jobs.columns:
+                jobs["min_amount"] = jobs["min_amount"].fillna(0).astype(int)
+            if "max_amount" in jobs.columns:
+                jobs["max_amount"] = jobs["max_amount"].fillna(0).astype(int)
+
+            # Combine salary information
+            jobs["salary_info"] = jobs.apply(
+                lambda row: f"{row['min_amount']}-{row['max_amount']} {row['currency']}"
+                if pd.notnull(row["min_amount"]) and pd.notnull(row["max_amount"])
+                else "Not disclosed",
+                axis=1
             )
-            
+
+            # Select final columns
+            final_columns = columns_needed + ["salary_info"]
+            df_clean = jobs[final_columns].replace({np.nan: None})
+
             # Convert to list format
-            result = df_cleaned.apply(lambda row: [
-                row["company"],
-                row["title"],
-                row["job_url"],
-                row["salary_source"] if row["salary_source"] != "None" else "No Salary",
-                row["date_posted"]
-            ], axis=1).tolist()
-            
-            return result
-            
+            return df_clean.values.tolist()
+
+        except KeyError as ke:
+            logger.error(f"Missing column in results: {ke}")
+            return []
         except Exception as e:
-            logger.error(f"Error using jobspy: {e}")
+            logger.error(f"Error in jobspy search: {str(e)}")
             return []
 
-# Helper function for random delays
+    def search_with_jobspy_ziprecuiter(self,site_name:List[str],search_term: str, 
+                       google_search_term: str, location: str = "San Francisco, CA",
+                       results_wanted: int = 20, hours_old: int = 72,
+                       country: str = "USA") -> List[Dict[str, Any]]:
+        """
+        Search for jobs using jobspy and return results in JSON-friendly format
+        """
+        try:
+            logger.info(f"Searching zip_recruiter using jobspy")
+            
+            # Scrape jobs
+            jobs = scrape_jobs(
+                site_name="zip_recruiter",
+                search_term="software engineer",
+                google_search_term="software engineer jobs near San Francisco, CA since yesterday",
+                location="San Francisco, CA",
+                results_wanted=20,
+                hours_old=72,
+                country_indeed="USA",
+            )
+            
+            logger.info(f"Found {len(jobs)} jobs using jobspy")
+
+            # Define expected columns and set defaults if missing
+            columns_needed = ["company", "title", "job_url", "date_posted", "location"]
+            salary_columns = ["min_amount", "max_amount", "currency"]
+            
+            # Add missing columns with default values
+            for col in columns_needed + salary_columns:
+                if col not in jobs.columns:
+                    jobs[col] = None
+
+            # Clean numerical columns
+            jobs["min_amount"] = jobs["min_amount"].fillna(0).astype(float)
+            jobs["max_amount"] = jobs["max_amount"].fillna(0).astype(float)
+            
+            # Ensure currency is string
+            jobs["currency"] = jobs["currency"].fillna("").astype(str)
+
+            # Create salary info
+            jobs["salary_info"] = jobs.apply(
+                lambda row: (
+                    f"{row['min_amount']:.0f}-{row['max_amount']:.0f} {row['currency']}"
+                    if pd.notnull(row["min_amount"]) and pd.notnull(row["max_amount"])
+                    else "Not disclosed"
+                ),
+                axis=1
+            )
+
+            # Select and clean final columns
+            final_columns = columns_needed + ["salary_info", "description"]
+            jobs_clean = jobs[final_columns].replace({np.nan: None})
+            
+            # Convert to list of dictionaries
+            return jobs_clean.to_dict(orient='records')
+
+        except Exception as e:
+            logger.error(f"Error in jobspy search: {str(e)}")
+            return []
+    
+
+
+        
+
+
+
+
 def random_delay(min_seconds: float = 1.0, max_seconds: float = 3.0):
     """Add a random delay to avoid detection."""
     time.sleep(random.uniform(min_seconds, max_seconds))
