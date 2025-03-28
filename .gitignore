@@ -23,11 +23,16 @@
 # misc
 .DS_Store
 *.pem
+
+# Ignore all __pycache__ directories
+__pycache__/
+
+# Ignore all .csv files
 *.csv
 # debug
 /__pycache__/
 app/__pycache__/
-jobs.csv
+
 
 # env files (can opt-in for committing if needed)
 .env*
