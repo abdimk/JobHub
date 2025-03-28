@@ -139,15 +139,13 @@ def searchJobsLinkdin(skill:str | None,place:str | None ,page:str | None) -> lis
                         break
                 url =" https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords="+skill+"&location="+place+"&start="+str(page)
                 print(url)
-                #url="https://www.linkedin.com/jobs/search/?currentJobId=3899546145&geoId=105149290&keywords=programming&location=Ontario%2C%20Canada&origin=JOBS_HOME_SEARCH_BUTTON&refresh=true"
-                #url="https://ca.indeed.com/jobs?q=programming&l=Bradford%2C+ON&from=searchOnHP&vjk=41b3ffa913ed4dc6"
-               
+              
                 driver.get(url)
                 html=driver.page_source
-                # Scrapping the Web (you can use 'html' or 'lxml')
+                
                 soup = BeautifulSoup(html, 'html.parser')
             
-                # Outer Most Entry Point of HTML:
+                
                 outer_most_point=soup.find('body')
             
                 # "UL" lists where the data are stored:
@@ -195,16 +193,16 @@ def searchJobsLinkdin(skill:str | None,place:str | None ,page:str | None) -> lis
 
                         linkdinlist.append([company, job, link, salary, post_date])
                 page=page+1
-                  #checking if there is a next page
+                  
                 nextPage=isThereASiteLinkdin(url)
     return linkdinlist
 
 def searchOnIndeed(search_term: str, google_search_term:str):
-    # Assuming scrape_jobs is defined elsewhere and works as expected
+    
     jobs = scrape_jobs(
         site_name=["indeed", "google"],
-        search_term=f"andriod developer",
-        google_search_term=f"andriod developer near ",
+        search_term=f"Data engineer",
+        google_search_term=f"Data engineer near newyork",
         location="newyork",
         results_wanted=30,
         hours_old=72,
@@ -213,17 +211,13 @@ def searchOnIndeed(search_term: str, google_search_term:str):
 
     total_Jobs = len(jobs)
     jobs.to_csv("jobs.csv", quoting=csv.QUOTE_NONNUMERIC, escapechar="\\", index=False)  # Save to CSV
-
-    # Read back the CSV to process it
+    
     df = pd.read_csv('jobs.csv')
-
-    # Select the necessary columns
+    
     columns_needed = ["company", "title", "job_url", "salary_source", "date_posted"]
-
-    # Replace NaN values with None
+    
     df_cleaned = df[columns_needed].applymap(lambda x: None if isinstance(x, float) and np.isnan(x) else x)
 
-    # Format the result as a list of lists
     result = df_cleaned.apply(lambda row: [
         row["company"],
         row["title"],
@@ -233,3 +227,44 @@ def searchOnIndeed(search_term: str, google_search_term:str):
     ], axis=1).tolist()
 
     return result
+
+
+
+
+# do ziprecruiter
+def ziprecruiter(search_term: str, google_search_term:str):
+        jobs = scrape_jobs(
+                site_name=["zip_recruiter", "google"],
+                search_term=f"Data engineer",
+                google_search_term=f"Data engineer near newyork",
+                location="newyork",
+                results_wanted=30,
+                hours_old=72,
+                country_indeed="usa",
+                )
+        
+
+        total_Jobs = len(jobs)
+        jobs.to_csv("jobs.csv", quoting=csv.QUOTE_NONNUMERIC, escapechar="\\", index=False)  # Save to CSV
+
+        
+        df = pd.read_csv('zipr.csv')
+
+        
+        columns_needed = ["company", "title", "job_url", "salary_source", "date_posted"]
+
+        
+        df_cleaned = df[columns_needed].applymap(lambda x: None if isinstance(x, float) and np.isnan(x) else x)
+
+        
+        result = df_cleaned.apply(lambda row: [
+                row["company"],
+                row["title"],
+                row["job_url"],
+                row["salary_source"] if row["salary_source"] != "None" else "No Salary",
+                row["date_posted"]
+        ], axis=1).tolist()
+
+        return result
+
+        

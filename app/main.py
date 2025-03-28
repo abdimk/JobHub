@@ -18,7 +18,7 @@ app.add_middleware(
 
 @app.get("/") #decorator
 async def root():
-    return {"message": f"Hello "}
+    return {"message": f"The API is working ! "}
 
 @app.post("/linkdin/get")
 def get_LIposts(title:schemas.userInput):

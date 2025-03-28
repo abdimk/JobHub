@@ -23,9 +23,10 @@
 # misc
 .DS_Store
 *.pem
-
+*.csv
 # debug
 /__pycache__/
+app/__pycache__/
 jobs.csv
 
 # env files (can opt-in for committing if needed)
