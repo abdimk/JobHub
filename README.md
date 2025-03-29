@@ -1,4 +1,6 @@
-<!-- <img src="" width="400"> -->
+<div style="margin: auto; width: 50%; text-align: center; border: 1px solid black;">
+    <img src="demo/demo.png" width="800">
+</div>
 
 **JobHub** - a simple nextjs / fastapi website that allows you to search for jobs with different parameters.
 
