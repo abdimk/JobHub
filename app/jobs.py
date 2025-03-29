@@ -12,6 +12,7 @@ import numpy as np
 from jobspy import scrape_jobs
 from typing import List, Dict, Optional, Any
 import logging
+import random
 
 # Configure logging
 logging.basicConfig(
@@ -279,13 +280,13 @@ class JobScraper:
             
             # Scrape jobs
             jobs = scrape_jobs(
-                site_name="zip_recruiter",
-                search_term="software engineer",
-                google_search_term="software engineer jobs near San Francisco, CA since yesterday",
-                location="San Francisco, CA",
-                results_wanted=20,
-                hours_old=72,
-                country_indeed="USA",
+                site_name=site_name,
+                search_term=search_term,
+                google_search_term=google_search_term,
+                location=location,
+                results_wanted=results_wanted,
+                hours_old=hours_old,
+                country_indeed=country,
             )
             
             logger.info(f"Found {len(jobs)} jobs using jobspy")
@@ -340,32 +341,5 @@ def random_delay(min_seconds: float = 1.0, max_seconds: float = 3.0):
 
 # Example usage
 if __name__ == "__main__":
-    import random
+    pass
     
-    # Initialize the scraper
-    scraper = JobScraper(headless=True)
-    
-    # Example: Search for Data Engineer jobs in New York
-    skill = "Data Engineer"
-    location = "New York"
-    
-    # LinkedIn search
-    linkedin_jobs = scraper.search_linkedin(skill, location, page=0, max_pages=2)
-    print(f"Found {len(linkedin_jobs)} jobs on LinkedIn")
-    
-    # ZipRecruiter search
-    ziprecruiter_jobs = scraper.search_ziprecruiter(skill, location, page=1, max_pages=2)
-    print(f"Found {len(ziprecruiter_jobs)} jobs on ZipRecruiter")
-    
-    
-    indeed_jobs = scraper.search_with_jobspy(
-        site_name=["indeed", "google"],
-        search_term="Data Engineer",
-        google_search_term="Data Engineer near New York",
-        location="New York",
-        results_wanted=30
-    )
-    print(f"Found {len(indeed_jobs)} jobs on Indeed via JobSpy")
-    
-    
-    del scraper
