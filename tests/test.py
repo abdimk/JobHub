@@ -1,6 +1,6 @@
 """
-i will add company logo []
-add hbase api 
+I will add company logo []
+add hbase (hadoop database for distributed crawling)
 fix the dice issue
 add linkedin company logo
 fix the codebase
