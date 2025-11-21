@@ -11,7 +11,8 @@
   </div>
 
 </div>
-**JobHub** - a simple nextjs / fastapi website that allows you to search for jobs with different parameters.
+** JobHub **
+- a simple nextjs / fastapi website that allows you to search for jobs with different parameters.
 
 ## Features
 
